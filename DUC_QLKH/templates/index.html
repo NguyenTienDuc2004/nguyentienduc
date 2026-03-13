@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Kho Siêu Thị</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <h2><i class="fa-solid fa-cart-shopping"></i> Kho Siêu Thị</h2>
+            </div>
+            <ul class="menu">
+                <li class="active"><a href="#dashboard"><i class="fa-solid fa-chart-pie"></i> Tổng Quan</a></li>
+                <li><a href="#products"><i class="fa-solid fa-box-open"></i> Hàng Hóa</a></li>
+
+                <li class="menu-label" style="padding: 10px 16px; font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-top: 10px;">Giao Dịch Kho</li>
+                <li><a href="#import"><i class="fa-solid fa-truck-ramp-box"></i> Nhập Kho</a></li>
+                <li><a href="#export"><i class="fa-solid fa-cart-flatbed"></i> Xuất Kho</a></li>
+
+                <li class="menu-label" style="padding: 10px 16px; font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-top: 10px;">Danh Mục</li>
+                <li><a href="#categories"><i class="fa-solid fa-tags"></i> Nhóm Hàng</a></li>
+                <li><a href="#suppliers"><i class="fa-solid fa-handshake"></i> Nhà Cung Cấp</a></li>
+
+                <li class="menu-label" style="padding: 10px 16px; font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-top: 10px;">Thống Kê</li>
+                <li><a href="#expiry"><i class="fa-solid fa-clock-rotate-left"></i> Hàng Cận Date</a></li>
+                <li><a href="#reports"><i class="fa-solid fa-chart-line"></i> Báo Cáo Nhập Xuất</a></li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <button id="menu-toggle"><i class="fa-solid fa-bars"></i></button>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" placeholder="Tìm kiếm bằng mã vạch, tên sản phẩm...">
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=3b82f6&color=fff" alt="Avatar" class="avatar">
+                </div>
+            </div>
+
+            <div id="dashboard" class="content active">
+                <div class="content-header">
+                    <h2>Tổng Quan Hệ Thống</h2>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #e0f2fe; color: #0284c7;"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        <div>
+                            <h3>Tổng Mặt Hàng</h3>
+                            <p id="total-products" style="font-size: 1.5rem; font-weight: 700; color: var(--dark);">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #fce7f3; color: #db2777;"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div>
+                            <h3>Tổng Vốn Tồn Kho</h3>
+                            <p id="total-cost" style="font-size: 1.2rem; font-weight: 700; color: #db2777;">0 ₫</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #dcfce7; color: #16a34a;"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        <div>
+                            <h3>Doanh Thu Ước Tính</h3>
+                            <p id="expected-revenue" style="font-size: 1.2rem; font-weight: 700; color: #16a34a;">0 ₫</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #fee2e2; color: #dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div>
+                            <h3>Cần Chú Ý</h3>
+                            <p style="font-size: 0.95rem; font-weight: 600; margin-top: 5px;">
+                                <span id="low-stock" style="color: var(--danger);">0</span> sắp hết •
+                                <span id="near-expiry" style="color: #d97706;">0</span> cận date
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="charts-grid mt-3" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px;">
+                    <div class="card chart-card">
+                        <h3 class="mb-3" style="font-size: 1.1rem; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 10px;">Doanh Thu & Chi Phí Nhập Hàng (7 Ngày Qua)</h3>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <h3 class="mb-3" style="font-size: 1.1rem; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 10px;">Cơ Cấu Tồn Kho</h3>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="products" class="content">
+                <div class="content-header">
+                    <h2>Danh Mục Hàng Hóa</h2>
+                    <div class="button-group">
+                        <button id="add-product" class="btn-primary"><i class="fa-solid fa-plus"></i> Thêm Sản Phẩm</button>
+                        <button id="export-all-products" class="btn-outline"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                    </div>
+                </div>
+                <div class="table-container card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Vạch</th>
+                                <th>Mã SP</th>
+                                <th>Tên Sản Phẩm</th>
+                                <th>Phân Loại</th>
+                                <th>Tồn Kho</th>
+                                <th>Giá Nhập</th>
+                                <th>Giá Bán</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-list">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="import" class="content">
+                <div class="content-header">
+                    <h2>Lập Phiếu Nhập Kho</h2>
+                    <button class="btn-primary"><i class="fa-solid fa-save"></i> Hoàn Thành & Lưu Phiếu</button>
+                </div>
+
+                <div class="card mb-3">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Thông Tin Phiếu</h3>
+                    <div class="grid-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="form-group">
+                            <label>Mã Phiếu Nhập:</label>
+                            <input type="text" id="import-id" value="PN-TUDONG" readonly style="background: #f1f5f9;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nhà Cung Cấp:</label>
+                            <select id="import-supplier" class="w-100" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background-color: var(--light-bg);">
+                                <option value="">-- Chọn Nhà Cung Cấp --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ngày Nhập:</label>
+                            <input type="date" id="import-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Ghi Chú:</label>
+                            <input type="text" id="import-note" placeholder="Nhập lô hàng...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Chi Tiết Hàng Hóa</h3>
+                    <div class="grid-form mb-3" style="background: var(--light-bg); padding: 15px; border-radius: 8px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 10px; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Chọn Sản Phẩm:</label>
+                            <select id="import-sp-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background-color: white; height: 42px;">
+                                <option value="">-- Chọn Sản Phẩm --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Số Lượng:</label>
+                            <input type="number" id="import-sp-qty" placeholder="0" style="height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Đơn Giá Nhập:</label>
+                            <input type="number" id="import-sp-price" placeholder="0" style="height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Hạn Sử Dụng:</label>
+                            <input type="date" id="import-sp-date" style="height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <button id="btn-add-import-item" class="btn-primary w-100" style="height: 42px;"><i class="fa-solid fa-plus"></i> Thêm Mới</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Mã SP</th>
+                                    <th>Tên Sản Phẩm</th>
+                                    <th>Hạn Sử Dụng</th>
+                                    <th>Số Lượng</th>
+                                    <th>Đơn Giá</th>
+                                    <th>Thành Tiền</th>
+                                    <th>Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="import-cart-tbody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; color: var(--text-muted);">Chưa có sản phẩm nào trong phiếu. Hãy thêm ở trên.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="text-align: right; margin-top: 15px; font-size: 1.2rem;">
+                            Tổng tiền: <strong id="import-total-ui" style="color: var(--danger);">0 VNĐ</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="export" class="content">
+                <div class="content-header">
+                    <h2>Lập Phiếu Xuất Kho</h2>
+                    <button class="btn-danger"><i class="fa-solid fa-truck-fast"></i> Hoàn Thành Xuất</button>
+                </div>
+
+                <div class="card mb-3">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">1. Thông Tin Phiếu Xuất</h3>
+                    <div class="grid-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="form-group">
+                            <label>Mã Phiếu Xuất:</label>
+                            <input type="text" id="export-id" value="PX-TUDONG" readonly style="background: #f1f5f9;">
+                        </div>
+                        <div class="form-group">
+                            <label>Ngày Xuất:</label>
+                            <input type="date" id="export-date">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Lý Do / Ghi Chú:</label>
+                            <input type="text" id="export-note" placeholder="Ví dụ: Xuất hàng lên kệ, xuất trả nhà cung cấp...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">2. Chi Tiết Hàng Xuất</h3>
+
+                    <div class="grid-form mb-3" style="background: var(--light-bg); padding: 15px; border-radius: 8px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Chọn Sản Phẩm (Kho):</label>
+                            <select id="export-sp-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background-color: white; height: 42px;">
+                                <option value="">-- Chọn Sản Phẩm --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Số Lượng Xuất:</label>
+                            <input type="number" id="export-sp-qty" placeholder="0" style="height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Đơn Giá Xuất:</label>
+                            <input type="number" id="export-sp-price" placeholder="0" style="height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <button id="btn-add-export-item" class="btn-danger w-100" style="height: 42px;"><i class="fa-solid fa-plus"></i> Thêm Vào Phiếu</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Mã SP</th>
+                                    <th>Tên Sản Phẩm</th>
+                                    <th>Số Lượng</th>
+                                    <th>Đơn Giá</th>
+                                    <th>Thành Tiền</th>
+                                    <th>Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="export-cart-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted);">Chưa có sản phẩm nào trong phiếu xuất.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="text-align: right; margin-top: 15px; font-size: 1.2rem;">
+                            Tổng giá trị xuất: <strong id="export-total-ui" style="color: var(--danger);">0 VNĐ</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="categories" class="content">
+                <div class="content-header">
+                    <h2>Quản Lý Nhóm Hàng (Phân Loại)</h2>
+                    <button id="add-category" class="btn-primary"><i class="fa-solid fa-plus"></i> Thêm Nhóm Hàng</button>
+                </div>
+                <div class="table-container card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Loại</th>
+                                <th>Tên Nhóm Hàng</th>
+                                <th>Mô Tả</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categories-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            <div id="suppliers" class="content">
+                <div class="content-header">
+                    <h2>Danh Sách Nhà Cung Cấp</h2>
+                    <button id="add-supplier" class="btn-primary"><i class="fa-solid fa-plus"></i> Thêm Nhà Cung Cấp</button>
+                </div>
+                <div class="table-container card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã NCC</th>
+                                <th>Tên Nhà Cung Cấp</th>
+                                <th>Số Điện Thoại</th>
+                                <th>Địa Chỉ</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliers-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="expiry" class="content">
+                <div class="content-header">
+                    <h2>Cảnh Báo Hàng Cận Date / Hết Hạn</h2>
+                    <button class="btn-outline" onclick="window.print()"><i class="fa-solid fa-print"></i> In Báo Cáo Cận Date</button>
+                </div>
+                <div class="table-container card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Vạch</th>
+                                <th>Tên Sản Phẩm</th>
+                                <th>Lô Nhập (SL)</th>
+                                <th>Ngày Hết Hạn</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expiry-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="reports" class="content">
+                <div class="content-header">
+                    <h2>Báo Cáo & Lịch Sử Giao Dịch</h2>
+                </div>
+
+                <div class="card mb-3">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: var(--primary);">Lịch Sử Nhập Kho</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã Phiếu</th>
+                                    <th>Ngày Nhập</th>
+                                    <th>Nhà Cung Cấp</th>
+                                    <th>Ghi Chú</th>
+                                    <th>Tổng Tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-import-list">
+                                <tr><td colspan="5" style="text-align: center;">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="mb-3" style="font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; color: var(--danger);">Lịch Sử Xuất Kho</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã Phiếu</th>
+                                    <th>Ngày Xuất</th>
+                                    <th>Lý Do / Ghi Chú</th>
+                                    <th>Tổng Doanh Thu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-export-list">
+                                <tr><td colspan="4" style="text-align: center;">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="product-modal" class="modal">
+        <div class="modal-content card" style="max-width: 600px;">
+            <span class="close"><i class="fa-solid fa-xmark"></i></span>
+            <h2 class="mb-3">Thông Tin Sản Phẩm</h2>
+            <form id="add-product-form">
+                <div class="grid-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Mã Sản Phẩm:</label>
+                        <input type="text" id="product-id" placeholder="VD: SP001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mã Vạch (Barcode):</label>
+                        <input type="text" id="product-barcode" placeholder="Quét mã vạch...">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Tên Sản Phẩm:</label>
+                        <input type="text" id="product-name" placeholder="Nhập tên sản phẩm..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Loại Hàng:</label>
+                        <select id="product-category" class="w-100" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border); background-color: var(--light-bg);">
+                            <option value="TP">Thực Phẩm</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Số Lượng Khởi Tạo:</label>
+                        <input type="number" id="product-quantity" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Giá Nhập (VNĐ):</label>
+                        <input type="number" id="product-import-price" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Giá Bán (VNĐ):</label>
+                        <input type="number" id="product-export-price" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="button-group mt-3" style="justify-content: flex-end; margin-top: 20px;">
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Lưu Thông Tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="category-modal" class="modal">
+        <div class="modal-content card" style="max-width: 500px;">
+            <span class="close-category" style="position: absolute; right: 20px; top: 20px; font-size: 20px; cursor: pointer; color: var(--text-muted);"><i class="fa-solid fa-xmark"></i></span>
+            <h2 class="mb-3">Thông Tin Nhóm Hàng</h2>
+            <form id="add-category-form">
+                <div class="form-group">
+                    <label>Mã Loại (VD: TP, DU, MP...):</label>
+                    <input type="text" id="category-id" required>
+                </div>
+                <div class="form-group">
+                    <label>Tên Nhóm Hàng:</label>
+                    <input type="text" id="category-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Mô Tả:</label>
+                    <input type="text" id="category-desc" placeholder="Ghi chú thêm...">
+                </div>
+                <div class="button-group mt-3" style="justify-content: flex-end;">
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Lưu Nhóm Hàng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="supplier-modal" class="modal">
+        <div class="modal-content card" style="max-width: 500px;">
+            <span class="close-supplier" style="position: absolute; right: 20px; top: 20px; font-size: 20px; cursor: pointer; color: var(--text-muted);"><i class="fa-solid fa-xmark"></i></span>
+            <h2 class="mb-3">Thông Tin Nhà Cung Cấp</h2>
+            <form id="add-supplier-form">
+                <div class="form-group">
+                    <label>Mã NCC (VD: NCC01):</label>
+                    <input type="text" id="supplier-id" required>
+                </div>
+                <div class="form-group">
+                    <label>Tên Nhà Cung Cấp:</label>
+                    <input type="text" id="supplier-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Số Điện Thoại:</label>
+                    <input type="text" id="supplier-phone" placeholder="VD: 0912345678">
+                </div>
+                <div class="form-group">
+                    <label>Địa Chỉ:</label>
+                    <input type="text" id="supplier-address" placeholder="Nhập địa chỉ...">
+                </div>
+                <div class="button-group mt-3" style="justify-content: flex-end;">
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Lưu Thông Tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
